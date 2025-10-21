@@ -1,5 +1,4 @@
 #include "fpv_interceptor.h"
-#include <wiringPi.h>
 #include <math.h>
 
 // Глобальные переменные для анализа RSSI
@@ -71,8 +70,8 @@ uint8_t analyze_rssi(uint16_t frequency) {
     
     int channel = frequency - FREQ_MIN;
     
-    // Чтение текущего RSSI
-    uint8_t current_rssi = rx5808_read_rssi();
+    // Чтение текущего RSSI (используем Linux GPIO версию)
+    uint8_t current_rssi = rx5808_read_rssi_linux();
     
     // Сглаживание
     smooth_rssi(frequency, current_rssi);

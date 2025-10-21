@@ -49,7 +49,7 @@ int add_detected_signal(uint16_t frequency, uint8_t rssi, uint8_t video) {
     if (video) {
         snprintf(detected_signals[signal_count].video_file, 
                 sizeof(detected_signals[signal_count].video_file),
-                "video_%d_%ld.avi", frequency, get_timestamp());
+                "video_%d_%u.avi", frequency, get_timestamp());
     }
     
     signal_count++;
@@ -74,7 +74,7 @@ void print_detected_signals(void) {
     printf("├─────────────┼─────────┼─────────┼─────────────────────┼─────────────────┤\n");
     
     for (int i = 0; i < signal_count; i++) {
-        printf("│ %-11d │ %-7d │ %-7s │ %-19ld │ %-15s │\n",
+        printf("│ %-11d │ %-7d │ %-7s │ %-19u │ %-15s │\n",
                detected_signals[i].frequency,
                detected_signals[i].rssi,
                detected_signals[i].video_detected ? "Да" : "Нет",
@@ -91,7 +91,7 @@ void print_detected_signals(void) {
  */
 void save_signal_data(void) {
     char filename[256];
-    snprintf(filename, sizeof(filename), "signals_%ld.txt", get_timestamp());
+    snprintf(filename, sizeof(filename), "signals_%u.txt", get_timestamp());
     
     FILE *file = fopen(filename, "w");
     if (!file) {
@@ -100,7 +100,7 @@ void save_signal_data(void) {
     }
     
     fprintf(file, "# FPV Interceptor - Обнаруженные сигналы\n");
-    fprintf(file, "# Время сканирования: %ld\n", get_timestamp());
+    fprintf(file, "# Время сканирования: %u\n", get_timestamp());
     fprintf(file, "# Диапазон: %d-%d МГц\n", FREQ_MIN, FREQ_MAX);
     fprintf(file, "# Обнаружено сигналов: %d\n\n", signal_count);
     
@@ -109,7 +109,7 @@ void save_signal_data(void) {
         fprintf(file, "  Частота: %d МГц\n", detected_signals[i].frequency);
         fprintf(file, "  RSSI: %d%%\n", detected_signals[i].rssi);
         fprintf(file, "  Видеосигнал: %s\n", detected_signals[i].video_detected ? "Да" : "Нет");
-        fprintf(file, "  Время: %ld\n", detected_signals[i].timestamp);
+        fprintf(file, "  Время: %u\n", detected_signals[i].timestamp);
         if (detected_signals[i].video_detected) {
             fprintf(file, "  Видеофайл: %s\n", detected_signals[i].video_file);
         }
@@ -161,7 +161,7 @@ void cleanup_resources(void) {
     frequency_scanner_cleanup();
     rssi_analyzer_cleanup();
     video_detector_cleanup();
-    rx5808_cleanup();
+    rx5808_cleanup_linux();
     
     printf("✅ Очистка завершена\n");
 }
@@ -234,6 +234,8 @@ void show_system_info(void) {
  * Основная функция
  */
 int main(int argc, char *argv[]) {
+    (void)argc;  // Подавление предупреждения о неиспользуемом параметре
+    (void)argv;  // Подавление предупреждения о неиспользуемом параметре
     printf("🚀 Запуск FPV Interceptor...\n");
     
     // Установка обработчиков сигналов
@@ -243,7 +245,7 @@ int main(int argc, char *argv[]) {
     // Инициализация модулей
     printf("🔧 Инициализация модулей...\n");
     
-    if (rx5808_init() != 0) {
+    if (rx5808_init_linux() != 0) {
         printf("❌ Ошибка инициализации RX5808\n");
         return -1;
     }

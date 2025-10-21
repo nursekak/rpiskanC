@@ -7,7 +7,6 @@
 
 // Глобальные переменные для GPIO и SPI
 static int spi_fd = -1;
-static int gpio_fd = -1;
 static int spi_initialized = 0;
 
 /**

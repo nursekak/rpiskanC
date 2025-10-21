@@ -97,8 +97,8 @@ int scan_single_frequency(uint16_t frequency) {
         return -1;
     }
     
-    // Установка частоты на RX5808
-    if (rx5808_set_frequency(frequency) != 0) {
+    // Установка частоты на RX5808 (используем Linux GPIO версию)
+    if (rx5808_set_frequency_linux(frequency) != 0) {
         printf("❌ Ошибка установки частоты %d МГц\n", frequency);
         return -1;
     }
