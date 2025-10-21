@@ -1,108 +1,48 @@
-# FPV Interceptor Makefile для Raspberry Pi 4
-# Система перехвата FPV видеосигналов 5.8 ГГц
+# FPV Interceptor GUI Makefile для Raspberry Pi 4
+# Система перехвата FPV видеосигналов 5.8 ГГц с GUI
 
 # Компилятор и флаги
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -std=c99 -D_GNU_SOURCE
-LDFLAGS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lpthread -lm
-
-# pigpio флаги (если доступен)
-PIGPIO_CFLAGS = $(CFLAGS)
-PIGPIO_LDFLAGS = $(LDFLAGS) -lpigpio
-
-# Linux GPIO флаги (альтернатива)
-LINUX_CFLAGS = $(CFLAGS)
-LINUX_LDFLAGS = -lpthread -lm
+LDFLAGS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lpigpio -lpthread -lm
 
 # GUI флаги
 GUI_CFLAGS = $(CFLAGS) `pkg-config --cflags gtk+-3.0`
 GUI_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0`
 
 # Имя исполняемого файла
-TARGET = fpv_interceptor
-GUI_TARGET = fpv_interceptor_gui
-LINUX_TARGET = fpv_interceptor_linux
+TARGET = fpv_interceptor_gui
 
 # Исходные файлы
-SOURCES = main.c \
-          rx5808_driver.c \
+SOURCES = fpv_gui.c \
           rssi_analyzer.c \
-          video_detector.c \
+          video_detector_gui.c \
           frequency_scanner.c
-
-# GUI исходные файлы
-GUI_SOURCES = fpv_gui.c \
-              rx5808_driver.c \
-              rssi_analyzer.c \
-              video_detector.c \
-              frequency_scanner.c
-
-# Linux GPIO исходные файлы
-LINUX_SOURCES = main.c \
-                gpio_linux.c \
-                rssi_analyzer.c \
-                video_detector_simple.c \
-                frequency_scanner.c
 
 # Объектные файлы
 OBJECTS = $(SOURCES:.c=.o)
-GUI_OBJECTS = $(GUI_SOURCES:.c=.o)
-LINUX_OBJECTS = $(LINUX_SOURCES:.c=.o)
 
 # Заголовочные файлы
-HEADERS = fpv_interceptor.h
+HEADERS = fpv_interceptor.h fpv_gui.h
 
 # По умолчанию
 all: $(TARGET)
 
-# GUI сборка
-gui: $(GUI_TARGET)
-
-# Linux GPIO сборка
-linux: $(LINUX_TARGET)
-
-# Сборка основного исполняемого файла
-$(TARGET): $(OBJECTS)
-	@echo "🔨 Сборка FPV Interceptor..."
-	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
-	@echo "✅ Сборка завершена: $(TARGET)"
-
 # Сборка GUI версии
-$(GUI_TARGET): $(GUI_OBJECTS)
+$(TARGET): $(OBJECTS)
 	@echo "🔨 Сборка FPV Interceptor GUI..."
-	$(CC) $(GUI_OBJECTS) -o $(GUI_TARGET) $(GUI_LDFLAGS)
-	@echo "✅ GUI сборка завершена: $(GUI_TARGET)"
-
-# Сборка Linux GPIO версии
-$(LINUX_TARGET): $(LINUX_OBJECTS)
-	@echo "🔨 Сборка FPV Interceptor Linux GPIO..."
-	$(CC) $(LINUX_OBJECTS) -o $(LINUX_TARGET) $(LINUX_LDFLAGS)
-	@echo "✅ Linux GPIO сборка завершена: $(LINUX_TARGET)"
+	$(CC) $(OBJECTS) -o $(TARGET) $(GUI_LDFLAGS)
+	@echo "✅ GUI сборка завершена: $(TARGET)"
 
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)
 	@echo "📦 Компиляция $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Специальное правило для video_detector_simple.c в Linux версии
-video_detector_simple.o: video_detector_simple.c $(HEADERS)
-	@echo "📦 Компиляция упрощенного видео $<..."
-	$(CC) $(LINUX_CFLAGS) -c $< -o $@
-
-# Компиляция GUI объектных файлов
-fpv_gui.o: fpv_gui.c fpv_gui.h $(HEADERS)
-	@echo "📦 Компиляция GUI $<..."
 	$(CC) $(GUI_CFLAGS) -c $< -o $@
-
-# Компиляция Linux GPIO объектных файлов
-gpio_linux.o: gpio_linux.c $(HEADERS)
-	@echo "📦 Компиляция Linux GPIO $<..."
-	$(CC) $(LINUX_CFLAGS) -c $< -o $@
 
 # Очистка
 clean:
 	@echo "🧹 Очистка файлов сборки..."
-	rm -f $(OBJECTS) $(GUI_OBJECTS) $(LINUX_OBJECTS) $(TARGET) $(GUI_TARGET) $(LINUX_TARGET)
+	rm -f $(OBJECTS) $(TARGET)
 	@echo "✅ Очистка завершена"
 
 # Установка зависимостей
@@ -176,14 +116,14 @@ set-permissions:
 install-service:
 	@echo "🔧 Создание systemd сервиса..."
 	@echo '[Unit]' > /tmp/fpv-interceptor.service
-	@echo 'Description=FPV Interceptor Service' >> /tmp/fpv-interceptor.service
+	@echo 'Description=FPV Interceptor GUI Service' >> /tmp/fpv-interceptor.service
 	@echo 'After=network.target' >> /tmp/fpv-interceptor.service
 	@echo '' >> /tmp/fpv-interceptor.service
 	@echo '[Service]' >> /tmp/fpv-interceptor.service
 	@echo 'Type=simple' >> /tmp/fpv-interceptor.service
 	@echo 'User=pi' >> /tmp/fpv-interceptor.service
 	@echo 'WorkingDirectory=/home/pi/fpv-interceptor' >> /tmp/fpv-interceptor.service
-	@echo 'ExecStart=/home/pi/fpv-interceptor/fpv_interceptor' >> /tmp/fpv-interceptor.service
+	@echo 'ExecStart=/home/pi/fpv-interceptor/fpv_interceptor_gui' >> /tmp/fpv-interceptor.service
 	@echo 'Restart=always' >> /tmp/fpv-interceptor.service
 	@echo 'RestartSec=5' >> /tmp/fpv-interceptor.service
 	@echo '' >> /tmp/fpv-interceptor.service
@@ -208,38 +148,38 @@ stop-service:
 # Создание скрипта быстрого запуска
 create-launcher:
 	@echo "🚀 Создание скрипта запуска..."
-	@echo '#!/bin/bash' > fpv_interceptor.sh
-	@echo '# FPV Interceptor Launcher' >> fpv_interceptor.sh
-	@echo '' >> fpv_interceptor.sh
-	@echo 'echo "🚀 Запуск FPV Interceptor..."' >> fpv_interceptor.sh
-	@echo '' >> fpv_interceptor.sh
-	@echo '# Проверка прав' >> fpv_interceptor.sh
-	@echo 'if [ "$$EUID" -eq 0 ]; then' >> fpv_interceptor.sh
-	@echo '    echo "❌ Не запускайте от имени root!"' >> fpv_interceptor.sh
-	@echo '    exit 1' >> fpv_interceptor.sh
-	@echo 'fi' >> fpv_interceptor.sh
-	@echo '' >> fpv_interceptor.sh
-	@echo '# Проверка оборудования' >> fpv_interceptor.sh
-	@echo 'echo "🔧 Проверка оборудования..."' >> fpv_interceptor.sh
-	@echo 'if [ ! -e /dev/spi0.0 ]; then' >> fpv_interceptor.sh
-	@echo '    echo "❌ SPI не найден. Проверьте настройки."' >> fpv_interceptor.sh
-	@echo '    exit 1' >> fpv_interceptor.sh
-	@echo 'fi' >> fpv_interceptor.sh
-	@echo '' >> fpv_interceptor.sh
-	@echo 'if [ ! -e /dev/video0 ]; then' >> fpv_interceptor.sh
-	@echo '    echo "⚠️ Видеоустройство не найдено. Видеозахват недоступен."' >> fpv_interceptor.sh
-	@echo 'fi' >> fpv_interceptor.sh
-	@echo '' >> fpv_interceptor.sh
-	@echo '# Запуск программы' >> fpv_interceptor.sh
-	@echo 'echo "✅ Запуск FPV Interceptor..."' >> fpv_interceptor.sh
-	@echo './fpv_interceptor' >> fpv_interceptor.sh
-	@chmod +x fpv_interceptor.sh
+	@echo '#!/bin/bash' > fpv_gui.sh
+	@echo '# FPV Interceptor GUI Launcher' >> fpv_gui.sh
+	@echo '' >> fpv_gui.sh
+	@echo 'echo "🚀 Запуск FPV Interceptor GUI..."' >> fpv_gui.sh
+	@echo '' >> fpv_gui.sh
+	@echo '# Проверка прав' >> fpv_gui.sh
+	@echo 'if [ "$$EUID" -eq 0 ]; then' >> fpv_gui.sh
+	@echo '    echo "❌ Не запускайте от имени root!"' >> fpv_gui.sh
+	@echo '    exit 1' >> fpv_gui.sh
+	@echo 'fi' >> fpv_gui.sh
+	@echo '' >> fpv_gui.sh
+	@echo '# Проверка оборудования' >> fpv_gui.sh
+	@echo 'echo "🔧 Проверка оборудования..."' >> fpv_gui.sh
+	@echo 'if [ ! -e /dev/spi0.0 ]; then' >> fpv_gui.sh
+	@echo '    echo "❌ SPI не найден. Проверьте настройки."' >> fpv_gui.sh
+	@echo '    exit 1' >> fpv_gui.sh
+	@echo 'fi' >> fpv_gui.sh
+	@echo '' >> fpv_gui.sh
+	@echo 'if [ ! -e /dev/video0 ]; then' >> fpv_gui.sh
+	@echo '    echo "⚠️ Видеоустройство не найдено. Видеозахват недоступен."' >> fpv_gui.sh
+	@echo 'fi' >> fpv_gui.sh
+	@echo '' >> fpv_gui.sh
+	@echo '# Запуск программы' >> fpv_gui.sh
+	@echo 'echo "✅ Запуск FPV Interceptor GUI..."' >> fpv_gui.sh
+	@echo './fpv_interceptor_gui' >> fpv_gui.sh
+	@chmod +x fpv_gui.sh
 	@echo "✅ Скрипт запуска создан"
 
 # Создание конфигурационного файла
 create-config:
 	@echo "⚙️ Создание конфигурации..."
-	@echo '# FPV Interceptor Configuration' > config/fpv_config.conf
+	@echo '# FPV Interceptor GUI Configuration' > config/fpv_config.conf
 	@echo '' >> config/fpv_config.conf
 	@echo '# Диапазон частот (МГц)' >> config/fpv_config.conf
 	@echo 'FREQ_MIN=5725' >> config/fpv_config.conf
@@ -274,7 +214,7 @@ create-config:
 install: install-deps setup-system create-dirs set-permissions create-config create-launcher
 	@echo "🎯 Полная установка завершена!"
 	@echo "Перезагрузите систему: sudo reboot"
-	@echo "Затем запустите: ./fpv_interceptor.sh"
+	@echo "Затем запустите: ./fpv_gui.sh"
 
 # Отладка
 debug: CFLAGS += -g -DDEBUG
@@ -295,17 +235,15 @@ static: $(TARGET)
 # Создание архива
 package: clean
 	@echo "📦 Создание архива..."
-	tar -czf fpv_interceptor.tar.gz *.c *.h Makefile README.md
-	@echo "✅ Архив создан: fpv_interceptor.tar.gz"
+	tar -czf fpv_interceptor_gui.tar.gz *.c *.h Makefile README.md
+	@echo "✅ Архив создан: fpv_interceptor_gui.tar.gz"
 
 # Помощь
 help:
-	@echo "FPV Interceptor - Система перехвата FPV сигналов"
+	@echo "FPV Interceptor GUI - Система перехвата FPV сигналов с GUI"
 	@echo ""
 	@echo "Доступные команды:"
-	@echo "  make              - Сборка консольной программы (pigpio)"
-	@echo "  make gui          - Сборка GUI версии (pigpio)"
-	@echo "  make linux        - Сборка Linux GPIO версии (без pigpio)"
+	@echo "  make              - Сборка GUI программы"
 	@echo "  make clean         - Очистка файлов сборки"
 	@echo "  make install-deps - Установка зависимостей"
 	@echo "  make setup-system - Настройка системы"

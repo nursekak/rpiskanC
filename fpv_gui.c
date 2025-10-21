@@ -2,6 +2,9 @@
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <cairo/cairo.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 // Глобальные переменные GUI
 static GtkWidget *main_window;
@@ -25,6 +28,37 @@ static gboolean scanning = FALSE;
 static gboolean video_capturing = FALSE;
 static guint scan_timer_id = 0;
 static guint video_timer_id = 0;
+
+/**
+ * Конвертация OpenCV Mat в GdkPixbuf
+ */
+GdkPixbuf* convert_mat_to_pixbuf(const cv::Mat &mat) {
+    if (mat.empty()) return nullptr;
+    
+    cv::Mat rgb_mat;
+    if (mat.channels() == 3) {
+        cv::cvtColor(mat, rgb_mat, cv::COLOR_BGR2RGB);
+    } else if (mat.channels() == 1) {
+        cv::cvtColor(mat, rgb_mat, cv::COLOR_GRAY2RGB);
+    } else {
+        return nullptr;
+    }
+    
+    // Создание GdkPixbuf
+    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data(
+        rgb_mat.data,
+        GDK_COLORSPACE_RGB,
+        FALSE,
+        8,
+        rgb_mat.cols,
+        rgb_mat.rows,
+        rgb_mat.step,
+        nullptr,
+        nullptr
+    );
+    
+    return pixbuf;
+}
 
 /**
  * Обновление статуса в GUI
@@ -110,9 +144,22 @@ gboolean draw_rssi_chart(GtkWidget *widget, cairo_t *cr, gpointer data) {
 gboolean update_video_display(gpointer data) {
     if (!video_capturing) return FALSE;
     
-    // Здесь будет код обновления видео
-    // Пока что просто обновляем статус
-    update_status("📹 Захват видео...");
+    // Захват кадра видео
+    cv::Mat *frame = get_current_frame();
+    if (frame && !frame->empty()) {
+        // Конвертация OpenCV Mat в GdkPixbuf
+        GdkPixbuf *pixbuf = convert_mat_to_pixbuf(*frame);
+        if (pixbuf) {
+            // Обновление виджета видео
+            gtk_image_set_from_pixbuf(GTK_IMAGE(video_widget), pixbuf);
+            g_object_unref(pixbuf);
+        }
+        delete frame;
+        
+        update_status("📹 Захват видео...");
+    } else {
+        update_status("⚠️ Нет видеосигнала");
+    }
     
     return TRUE;
 }
@@ -262,7 +309,7 @@ GtkWidget* create_main_window(void) {
     gtk_frame_set_shadow_type(GTK_FRAME(video_frame), GTK_SHADOW_IN);
     gtk_box_pack_start(GTK_BOX(vbox), video_frame, TRUE, TRUE, 5);
     
-    video_widget = gtk_drawing_area_new();
+    video_widget = gtk_image_new();
     gtk_widget_set_size_request(video_widget, 800, 400);
     gtk_container_add(GTK_CONTAINER(video_frame), video_widget);
     
@@ -387,6 +434,7 @@ int main(int argc, char *argv[]) {
     
     if (init_video_capture() != 0) {
         printf("⚠️ Предупреждение: USB Video DVR недоступен\n");
+        printf("ℹ️ Видеозахват будет недоступен, но RSSI анализ работает\n");
     }
     
     if (frequency_scanner_init() != 0) {
