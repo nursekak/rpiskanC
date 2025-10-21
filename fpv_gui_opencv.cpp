@@ -223,21 +223,42 @@ gboolean scan_frequencies(gpointer data) {
     if (!scanning) return FALSE;
     
     static uint16_t current_freq = FREQ_MIN;
+    static int scan_cycle = 0;
+    static int signals_found = 0;
     
     // Установка частоты
     if (rx5808_set_frequency(current_freq) == 0) {
+        // Небольшая задержка для стабилизации
+        usleep(50000); // 50 мс
+        
         // Чтение RSSI
         uint8_t rssi = rx5808_read_rssi();
         
         // Обновление GUI
         update_rssi_display(rssi, current_freq);
         
+        // Показ прогресса сканирования
+        int total_channels = (FREQ_MAX - FREQ_MIN) / FREQ_STEP + 1;
+        int current_channel = (current_freq - FREQ_MIN) / FREQ_STEP + 1;
+        int progress_percent = (current_channel * 100) / total_channels;
+        
+        char progress_msg[256];
+        snprintf(progress_msg, sizeof(progress_msg), 
+                "🔍 Сканирование: %d МГц (%d/%d, %d%%) | RSSI: %d%% | Найдено: %d", 
+                current_freq, current_channel, total_channels, progress_percent, rssi, signals_found);
+        update_status(progress_msg);
+        
         // Проверка на обнаружение сигнала
         if (rssi > RSSI_THRESHOLD) {
+            signals_found++;
             char message[256];
             snprintf(message, sizeof(message), 
-                    "🎯 Сигнал обнаружен: %d МГц, RSSI: %d%%", current_freq, rssi);
+                    "🎯 СИГНАЛ ОБНАРУЖЕН: %d МГц, RSSI: %d%% (сигнал #%d)", 
+                    current_freq, rssi, signals_found);
             update_status(message);
+            
+            // Добавление в список обнаруженных сигналов
+            add_detected_signal(current_freq, rssi, "FPV Video");
             
             // Захват видео на обнаруженной частоте
             capture_video_frame(current_freq);
@@ -253,7 +274,19 @@ gboolean scan_frequencies(gpointer data) {
         current_freq += FREQ_STEP;
         if (current_freq > FREQ_MAX) {
             current_freq = FREQ_MIN;
+            scan_cycle++;
+            
+            char cycle_msg[128];
+            snprintf(cycle_msg, sizeof(cycle_msg), 
+                    "🔄 Цикл сканирования #%d завершен. Найдено сигналов: %d", 
+                    scan_cycle, signals_found);
+            update_status(cycle_msg);
         }
+    } else {
+        char error_msg[128];
+        snprintf(error_msg, sizeof(error_msg), 
+                "❌ Ошибка установки частоты %d МГц", current_freq);
+        update_status(error_msg);
     }
     
     return TRUE;
@@ -334,9 +367,30 @@ void on_monitor_frequency(GtkWidget *widget, gpointer data) {
     
     // Установка частоты
     if (rx5808_set_frequency(frequency) == 0) {
-        uint8_t rssi = rx5808_read_rssi();
+        // Небольшая задержка для стабилизации
+        usleep(100000); // 100 мс
+        
+        // Чтение RSSI несколько раз для усреднения
+        uint8_t rssi = rx5808_read_rssi_averaged(5);
         update_rssi_display(rssi, frequency);
-        update_status("✅ Частота установлена");
+        
+        char monitor_msg[128];
+        snprintf(monitor_msg, sizeof(monitor_msg), 
+                "✅ Мониторинг %d МГц | RSSI: %d%% | %s", 
+                frequency, rssi, 
+                rssi > RSSI_THRESHOLD ? "СИГНАЛ ОБНАРУЖЕН!" : "Сигнал не обнаружен");
+        update_status(monitor_msg);
+        
+        // Если сигнал обнаружен, начинаем захват видео
+        if (rssi > RSSI_THRESHOLD) {
+            add_detected_signal(frequency, rssi, "Manual Monitor");
+            capture_video_frame(frequency);
+            
+            if (!video_capturing) {
+                video_capturing = TRUE;
+                video_timer_id = g_timeout_add(100, update_video_display, NULL);
+            }
+        }
     } else {
         update_status("❌ Ошибка установки частоты");
     }
