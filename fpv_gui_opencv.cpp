@@ -253,7 +253,7 @@ gboolean scan_frequencies(gpointer data) {
             signals_found++;
             char message[256];
             snprintf(message, sizeof(message), 
-                    "🎯 СИГНАЛ ОБНАРУЖЕН: %d МГц, RSSI: %d%% (сигнал #%d)", 
+                    "🎯 СИГНАЛ ОБНАРУЖЕН: %d МГц, RSSI: %d%% (сигнал #%d) - Сканирование продолжается", 
                     current_freq, rssi, signals_found);
             update_status(message);
             
@@ -263,10 +263,11 @@ gboolean scan_frequencies(gpointer data) {
             // Захват видео на обнаруженной частоте
             capture_video_frame(current_freq);
             
-            // Начало захвата видео
+            // Начало захвата видео (если еще не запущен)
             if (!video_capturing) {
                 video_capturing = TRUE;
                 video_timer_id = g_timeout_add(100, update_video_display, NULL);
+                printf("📹 Захват видео активирован на частоте %d МГц\n", current_freq);
             }
         }
         

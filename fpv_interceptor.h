@@ -99,6 +99,7 @@ int analyze_video_quality(void* frame);
 int detect_motion(void* frame);
 void set_video_parameters(int width, int height, int fps);
 void video_detector_cleanup(void);
+int test_usb_dvr(void);
 
 // Функции частотного сканера
 int frequency_scanner_init(void);

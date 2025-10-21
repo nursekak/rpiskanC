@@ -70,6 +70,14 @@ int init_video_capture(void) {
     video_capture->set(cv::CAP_PROP_FPS, video_fps);
     video_capture->set(cv::CAP_PROP_BUFFERSIZE, 1); // Минимальная задержка
     
+    // Принудительная установка формата YUYV для USB DVR
+    video_capture->set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('Y', 'U', 'Y', 'V'));
+    
+    // Дополнительные настройки для стабильности
+    video_capture->set(cv::CAP_PROP_AUTO_EXPOSURE, 0.25); // Отключить автоэкспозицию
+    video_capture->set(cv::CAP_PROP_BRIGHTNESS, 128);    // Средняя яркость
+    video_capture->set(cv::CAP_PROP_CONTRAST, 128);       // Средний контраст
+    
     // Проверка успешности настройки
     double actual_width = video_capture->get(cv::CAP_PROP_FRAME_WIDTH);
     double actual_height = video_capture->get(cv::CAP_PROP_FRAME_HEIGHT);
@@ -79,6 +87,13 @@ int init_video_capture(void) {
     printf("   Устройство: %s\n", video_device);
     printf("   Разрешение: %.0fx%.0f\n", actual_width, actual_height);
     printf("   FPS: %.1f\n", actual_fps);
+    
+    // Дополнительная диагностика
+    double fourcc = video_capture->get(cv::CAP_PROP_FOURCC);
+    printf("   Формат: %.0f (YUYV=1448695129)\n", fourcc);
+    printf("   Буфер: %.0f кадров\n", video_capture->get(cv::CAP_PROP_BUFFERSIZE));
+    printf("   Яркость: %.1f\n", video_capture->get(cv::CAP_PROP_BRIGHTNESS));
+    printf("   Контраст: %.1f\n", video_capture->get(cv::CAP_PROP_CONTRAST));
     
     video_initialized = 1;
     
@@ -102,9 +117,21 @@ int capture_video_frame(uint16_t frequency) {
     
     cv::Mat frame;
     
-    // Захват кадра
-    if (!video_capture->read(frame)) {
-        printf("❌ Ошибка захвата кадра на частоте %d МГц\n", frequency);
+    // Захват кадра с повторными попытками
+    int retry_count = 0;
+    bool frame_read = false;
+    
+    while (retry_count < 3 && !frame_read) {
+        frame_read = video_capture->read(frame);
+        if (!frame_read) {
+            retry_count++;
+            usleep(10000); // 10 мс задержка между попытками
+            printf("⚠️ Попытка захвата кадра %d/3 на частоте %d МГц\n", retry_count, frequency);
+        }
+    }
+    
+    if (!frame_read) {
+        printf("❌ Ошибка захвата кадра на частоте %d МГц после 3 попыток\n", frequency);
         return -1;
     }
     
@@ -269,6 +296,54 @@ void save_video_stream(uint16_t frequency) {
         snprintf(status, sizeof(status), "💾 Видео сохранено: %d кадров", frame_count);
         gui_status_callback(status);
     }
+}
+
+/**
+ * Тестирование USB DVR
+ */
+int test_usb_dvr(void) {
+    printf("🧪 Тестирование USB DVR...\n");
+    
+    // Проверка доступности устройства
+    if (access("/dev/video0", F_OK) != 0) {
+        printf("❌ /dev/video0 не найден\n");
+        return -1;
+    }
+    
+    // Создание временного VideoCapture для теста
+    cv::VideoCapture test_capture;
+    if (!test_capture.open("/dev/video0")) {
+        printf("❌ Не удалось открыть /dev/video0\n");
+        return -1;
+    }
+    
+    // Настройка параметров
+    test_capture.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    test_capture.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+    test_capture.set(cv::CAP_PROP_FPS, 30);
+    test_capture.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('Y', 'U', 'Y', 'V'));
+    
+    // Попытка захвата тестового кадра
+    cv::Mat test_frame;
+    if (!test_capture.read(test_frame)) {
+        printf("❌ Не удалось захватить тестовый кадр\n");
+        test_capture.release();
+        return -1;
+    }
+    
+    if (test_frame.empty()) {
+        printf("❌ Тестовый кадр пустой\n");
+        test_capture.release();
+        return -1;
+    }
+    
+    printf("✅ USB DVR работает:\n");
+    printf("   Разрешение: %dx%d\n", test_frame.cols, test_frame.rows);
+    printf("   Каналы: %d\n", test_frame.channels());
+    printf("   Тип данных: %d\n", test_frame.type());
+    
+    test_capture.release();
+    return 0;
 }
 
 /**

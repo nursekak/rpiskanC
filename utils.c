@@ -27,7 +27,7 @@ uint32_t get_timestamp(void) {
  */
 void add_detected_signal(uint16_t frequency, uint8_t rssi, const char* signal_type) {
     if (detected_count >= 100) {
-        printf("⚠️ Превышено максимальное количество сигналов\n");
+        printf("⚠️ Превышено максимальное количество сигналов (100). Очистите список или перезапустите программу.\n");
         return;
     }
     
