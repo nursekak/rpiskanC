@@ -1,6 +1,10 @@
 #ifndef FPV_INTERCEPTOR_H
 #define FPV_INTERCEPTOR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,5 +118,9 @@ void cleanup_resources(void);
 void update_status(const char *message);
 void update_rssi_display(uint8_t rssi, uint16_t frequency);
 void* convert_mat_to_pixbuf(void* mat);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // FPV_INTERCEPTOR_H

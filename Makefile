@@ -46,7 +46,7 @@ $(TARGET): $(OBJECTS)
 # Сборка OpenCV версии
 $(OPENCV_TARGET): fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o
 	@echo "🔨 Сборка FPV Interceptor GUI с OpenCV..."
-	$(CC) fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(OPENCV_LDFLAGS)
+	g++ fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(OPENCV_LDFLAGS)
 	@echo "✅ OpenCV GUI сборка завершена: $(OPENCV_TARGET)"
 
 # Компиляция OpenCV файлов
