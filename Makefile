@@ -14,9 +14,8 @@ GUI_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0`
 TARGET = fpv_interceptor_gui
 
 # Исходные файлы
-SOURCES = fpv_gui.c \
+SOURCES = fpv_gui_simple.c \
           rssi_analyzer.c \
-          video_detector_gui.c \
           frequency_scanner.c
 
 # Объектные файлы
