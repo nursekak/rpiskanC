@@ -118,6 +118,7 @@ void cleanup_resources(void);
 void update_status(const char *message);
 void update_rssi_display(uint8_t rssi, uint16_t frequency);
 void* convert_mat_to_pixbuf(void* mat);
+int init_gui_video_capture(void);
 
 #ifdef __cplusplus
 }

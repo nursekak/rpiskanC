@@ -30,7 +30,6 @@ static guint video_timer_id = 0;
 // OpenCV переменные
 static cv::VideoCapture *video_capture = nullptr;
 static cv::Mat current_frame;
-static pthread_mutex_t frame_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // GUI виджеты
 static GtkWidget *quality_label = nullptr;
@@ -90,21 +89,15 @@ void gui_update_status(const char* message) {
 }
 
 /**
- * Инициализация видеозахвата
+ * Инициализация видеозахвата GUI
  */
-int init_video_capture(void) {
-    printf("📹 Инициализация видеозахвата с OpenCV...\n");
+int init_gui_video_capture(void) {
+    printf("📹 Инициализация видеозахвата GUI с OpenCV...\n");
     
     // Установка callback функций
     set_gui_callbacks(gui_update_frame, gui_update_status);
     
-    // Инициализация видеодетектора
-    if (init_video_capture() != 0) {
-        printf("❌ Ошибка инициализации видеодетектора\n");
-        return -1;
-    }
-    
-    printf("✅ Видеозахват инициализирован с OpenCV\n");
+    printf("✅ Видеозахват GUI инициализирован с OpenCV\n");
     return 0;
 }
 
@@ -511,8 +504,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     
-    if (init_video_capture() != 0) {
-        printf("⚠️ Предупреждение: USB Video DVR недоступен\n");
+    if (init_gui_video_capture() != 0) {
+        printf("⚠️ Предупреждение: GUI видеозахват недоступен\n");
         printf("ℹ️ Видеозахват будет недоступен, но RSSI анализ работает\n");
     }
     
