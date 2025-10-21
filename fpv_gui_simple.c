@@ -4,7 +4,6 @@
 #include <cairo/cairo.h>
 
 // Глобальные переменные GUI
-static GtkWidget *main_window;
 static GtkWidget *video_widget;
 static GtkWidget *status_label;
 static GtkWidget *rssi_progress;
@@ -13,7 +12,6 @@ static GtkWidget *scan_button;
 static GtkWidget *stop_button;
 static GtkWidget *frequency_entry;
 static GtkWidget *rssi_chart;
-static GtkWidget *log_text;
 
 // Данные для графика RSSI
 static double rssi_history[100];
@@ -59,6 +57,7 @@ void update_rssi_display(uint8_t rssi, uint16_t frequency) {
  * Отрисовка графика RSSI
  */
 gboolean draw_rssi_chart(GtkWidget *widget, cairo_t *cr, gpointer data) {
+    (void)data; // Подавление предупреждения
     GtkAllocation allocation;
     gtk_widget_get_allocation(widget, &allocation);
     
@@ -108,6 +107,7 @@ gboolean draw_rssi_chart(GtkWidget *widget, cairo_t *cr, gpointer data) {
  * Обновление видео в GUI (заглушка)
  */
 gboolean update_video_display(gpointer data) {
+    (void)data; // Подавление предупреждения
     if (!video_capturing) return FALSE;
     
     // Заглушка для видео - показываем статус
@@ -120,6 +120,7 @@ gboolean update_video_display(gpointer data) {
  * Сканирование частот в GUI (заглушка)
  */
 gboolean scan_frequencies(gpointer data) {
+    (void)data; // Подавление предупреждения
     if (!scanning) return FALSE;
     
     static uint16_t current_freq = FREQ_MIN;
@@ -157,6 +158,7 @@ gboolean scan_frequencies(gpointer data) {
  * Обработчик кнопки "Начать сканирование"
  */
 void on_scan_button_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget; (void)data; // Подавление предупреждений
     if (!scanning) {
         scanning = TRUE;
         gtk_button_set_label(GTK_BUTTON(scan_button), "⏹️ Остановить");
@@ -190,6 +192,7 @@ void on_scan_button_clicked(GtkWidget *widget, gpointer data) {
  * Обработчик кнопки "Остановить"
  */
 void on_stop_button_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget; (void)data; // Подавление предупреждений
     scanning = FALSE;
     video_capturing = FALSE;
     
@@ -213,6 +216,7 @@ void on_stop_button_clicked(GtkWidget *widget, gpointer data) {
  * Обработчик кнопки "Мониторинг частоты"
  */
 void on_monitor_frequency(GtkWidget *widget, gpointer data) {
+    (void)widget; (void)data; // Подавление предупреждений
     const char *freq_text = gtk_entry_get_text(GTK_ENTRY(frequency_entry));
     int frequency = atoi(freq_text);
     
@@ -236,7 +240,7 @@ GtkWidget* create_main_window(void) {
     GtkWidget *window;
     GtkWidget *vbox, *hbox;
     GtkWidget *video_frame, *control_frame;
-    GtkWidget *button_box;
+    // GtkWidget *button_box; // Не используется
     GtkWidget *separator;
     
     // Главное окно
@@ -338,6 +342,7 @@ GtkWidget* create_main_window(void) {
  * Обработчик закрытия окна
  */
 gboolean on_window_delete_event(GtkWidget *widget, GdkEvent *event, gpointer data) {
+    (void)widget; (void)event; (void)data; // Подавление предупреждений
     // Остановка всех операций
     scanning = FALSE;
     video_capturing = FALSE;

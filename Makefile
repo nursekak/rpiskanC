@@ -17,7 +17,7 @@ TARGET = fpv_interceptor_gui
 SOURCES = fpv_gui_simple.c \
           rx5808_stub.c \
           rssi_analyzer.c \
-          frequency_scanner.c
+          frequency_scanner_fixed.c
 
 # Объектные файлы
 OBJECTS = $(SOURCES:.c=.o)
