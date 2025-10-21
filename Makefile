@@ -4,10 +4,24 @@
 # Компилятор и флаги
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -std=c99 -D_GNU_SOURCE
-LDFLAGS = -lpigpio -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lpthread -lm
+LDFLAGS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lpthread -lm
+
+# pigpio флаги (если доступен)
+PIGPIO_CFLAGS = $(CFLAGS)
+PIGPIO_LDFLAGS = $(LDFLAGS) -lpigpio
+
+# Linux GPIO флаги (альтернатива)
+LINUX_CFLAGS = $(CFLAGS)
+LINUX_LDFLAGS = $(LDFLAGS)
+
+# GUI флаги
+GUI_CFLAGS = $(CFLAGS) `pkg-config --cflags gtk+-3.0`
+GUI_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0`
 
 # Имя исполняемого файла
 TARGET = fpv_interceptor
+GUI_TARGET = fpv_interceptor_gui
+LINUX_TARGET = fpv_interceptor_linux
 
 # Исходные файлы
 SOURCES = main.c \
@@ -16,8 +30,24 @@ SOURCES = main.c \
           video_detector.c \
           frequency_scanner.c
 
+# GUI исходные файлы
+GUI_SOURCES = fpv_gui.c \
+              rx5808_driver.c \
+              rssi_analyzer.c \
+              video_detector.c \
+              frequency_scanner.c
+
+# Linux GPIO исходные файлы
+LINUX_SOURCES = main.c \
+                gpio_linux.c \
+                rssi_analyzer.c \
+                video_detector.c \
+                frequency_scanner.c
+
 # Объектные файлы
 OBJECTS = $(SOURCES:.c=.o)
+GUI_OBJECTS = $(GUI_SOURCES:.c=.o)
+LINUX_OBJECTS = $(LINUX_SOURCES:.c=.o)
 
 # Заголовочные файлы
 HEADERS = fpv_interceptor.h
@@ -25,35 +55,69 @@ HEADERS = fpv_interceptor.h
 # По умолчанию
 all: $(TARGET)
 
+# GUI сборка
+gui: $(GUI_TARGET)
+
+# Linux GPIO сборка
+linux: $(LINUX_TARGET)
+
 # Сборка основного исполняемого файла
 $(TARGET): $(OBJECTS)
 	@echo "🔨 Сборка FPV Interceptor..."
 	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 	@echo "✅ Сборка завершена: $(TARGET)"
 
+# Сборка GUI версии
+$(GUI_TARGET): $(GUI_OBJECTS)
+	@echo "🔨 Сборка FPV Interceptor GUI..."
+	$(CC) $(GUI_OBJECTS) -o $(GUI_TARGET) $(GUI_LDFLAGS)
+	@echo "✅ GUI сборка завершена: $(GUI_TARGET)"
+
+# Сборка Linux GPIO версии
+$(LINUX_TARGET): $(LINUX_OBJECTS)
+	@echo "🔨 Сборка FPV Interceptor Linux GPIO..."
+	$(CC) $(LINUX_OBJECTS) -o $(LINUX_TARGET) $(LINUX_LDFLAGS)
+	@echo "✅ Linux GPIO сборка завершена: $(LINUX_TARGET)"
+
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)
 	@echo "📦 Компиляция $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Компиляция GUI объектных файлов
+fpv_gui.o: fpv_gui.c fpv_gui.h $(HEADERS)
+	@echo "📦 Компиляция GUI $<..."
+	$(CC) $(GUI_CFLAGS) -c $< -o $@
+
+# Компиляция Linux GPIO объектных файлов
+gpio_linux.o: gpio_linux.c $(HEADERS)
+	@echo "📦 Компиляция Linux GPIO $<..."
+	$(CC) $(LINUX_CFLAGS) -c $< -o $@
+
 # Очистка
 clean:
 	@echo "🧹 Очистка файлов сборки..."
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(GUI_OBJECTS) $(LINUX_OBJECTS) $(TARGET) $(GUI_TARGET) $(LINUX_TARGET)
 	@echo "✅ Очистка завершена"
 
 # Установка зависимостей
 install-deps:
 	@echo "📦 Установка зависимостей..."
 	sudo apt update
-	sudo apt install -y pigpio libpigpio-dev
-	sudo apt install -y libopencv-dev python3-opencv
 	sudo apt install -y build-essential cmake pkg-config
+	sudo apt install -y libopencv-dev python3-opencv
 	sudo apt install -y libjpeg-dev libtiff5-dev libpng-dev
 	sudo apt install -y libavcodec-dev libavformat-dev libswscale-dev
 	sudo apt install -y libgtk2.0-dev libcanberra-gtk*
 	sudo apt install -y libv4l-dev v4l-utils
 	sudo apt install -y python3-pip python3-dev
+	sudo apt install -y libgtk-3-dev libcairo2-dev libpango1.0-dev
+	sudo apt install -y git
+	@echo "📦 Установка pigpio из исходников..."
+	@if [ ! -d "pigpio" ]; then \
+		git clone https://github.com/joan2937/pigpio.git; \
+	fi
+	cd pigpio && make && sudo make install
 	@echo "✅ Зависимости установлены"
 
 # Настройка системы
@@ -234,8 +298,10 @@ help:
 	@echo "FPV Interceptor - Система перехвата FPV сигналов"
 	@echo ""
 	@echo "Доступные команды:"
-	@echo "  make              - Сборка программы"
-	@echo "  make clean        - Очистка файлов сборки"
+	@echo "  make              - Сборка консольной программы (pigpio)"
+	@echo "  make gui          - Сборка GUI версии (pigpio)"
+	@echo "  make linux        - Сборка Linux GPIO версии (без pigpio)"
+	@echo "  make clean         - Очистка файлов сборки"
 	@echo "  make install-deps - Установка зависимостей"
 	@echo "  make setup-system - Настройка системы"
 	@echo "  make test-hardware- Проверка оборудования"

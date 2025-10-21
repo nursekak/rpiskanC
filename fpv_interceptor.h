@@ -94,6 +94,14 @@ int rx5808_is_ready(void);
 void rx5808_get_info(void);
 int rx5808_cleanup(void);
 
+// Linux GPIO функции (альтернатива pigpio)
+int rx5808_init_linux(void);
+void rx5808_write_register_linux(uint8_t reg, uint8_t data);
+uint8_t rx5808_read_register_linux(uint8_t reg);
+int rx5808_set_frequency_linux(uint16_t frequency);
+uint8_t rx5808_read_rssi_linux(void);
+int rx5808_cleanup_linux(void);
+
 // Функции анализа RSSI
 int rssi_analyzer_init(void);
 uint8_t analyze_rssi(uint16_t frequency);
