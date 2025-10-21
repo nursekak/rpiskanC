@@ -7,6 +7,13 @@ static uint8_t rssi_index[CHANNELS_COUNT] = {0};
 static uint8_t rssi_smoothed[CHANNELS_COUNT] = {0};
 static uint32_t last_update[CHANNELS_COUNT] = {0};
 
+// Объявления функций
+static uint8_t analyze_rssi_trend(int channel);
+static uint8_t calculate_signal_stability(int channel);
+static uint8_t analyze_fpv_characteristics(int channel);
+static uint8_t analyze_periodicity(int channel);
+static uint8_t analyze_frequency_characteristics(int channel);
+
 /**
  * Инициализация анализатора RSSI
  * @return 0 при успехе, -1 при ошибке
