@@ -10,6 +10,10 @@ LDFLAGS = -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs -lp
 GUI_CFLAGS = $(CFLAGS) `pkg-config --cflags gtk+-3.0`
 GUI_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0`
 
+# OpenCV флаги
+OPENCV_CFLAGS = $(CFLAGS) `pkg-config --cflags gtk+-3.0` `pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv`
+OPENCV_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0` `pkg-config --libs opencv4 2>/dev/null || pkg-config --libs opencv`
+
 # Имя исполняемого файла
 TARGET = fpv_interceptor_gui
 OPENCV_TARGET = fpv_interceptor_opencv
@@ -42,8 +46,13 @@ $(TARGET): $(OBJECTS)
 # Сборка OpenCV версии
 $(OPENCV_TARGET): fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o
 	@echo "🔨 Сборка FPV Interceptor GUI с OpenCV..."
-	$(CC) fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(GUI_LDFLAGS)
+	$(CC) fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(OPENCV_LDFLAGS)
 	@echo "✅ OpenCV GUI сборка завершена: $(OPENCV_TARGET)"
+
+# Компиляция OpenCV файлов
+fpv_gui_opencv.o: fpv_gui_opencv.c $(HEADERS)
+	@echo "📦 Компиляция OpenCV $<..."
+	$(CC) $(OPENCV_CFLAGS) -c $< -o $@
 
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)
