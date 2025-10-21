@@ -70,7 +70,8 @@ GdkPixbuf* convert_mat_to_pixbuf(const cv::Mat &mat) {
 /**
  * Callback для обновления GUI с новым кадром
  */
-void gui_update_frame(cv::Mat* frame) {
+void gui_update_frame(void* frame_ptr) {
+    cv::Mat* frame = static_cast<cv::Mat*>(frame_ptr);
     if (frame && !frame->empty()) {
         // Обновление отображения видео напрямую
         GdkPixbuf *pixbuf = convert_mat_to_pixbuf(*frame);
@@ -183,7 +184,8 @@ gboolean update_video_display(gpointer data) {
     if (!video_capturing) return FALSE;
     
     // Получение текущего кадра от видеодетектора
-    cv::Mat* frame = get_current_frame();
+    void* frame_ptr = get_current_frame();
+    cv::Mat* frame = static_cast<cv::Mat*>(frame_ptr);
     if (frame && !frame->empty()) {
         // Конвертация в GdkPixbuf для отображения
         GdkPixbuf *pixbuf = convert_mat_to_pixbuf(*frame);
@@ -193,7 +195,7 @@ gboolean update_video_display(gpointer data) {
         }
         
         // Анализ качества видео
-        int quality = analyze_video_quality(*frame);
+        int quality = analyze_video_quality(frame);
         char quality_text[64];
         snprintf(quality_text, sizeof(quality_text), "Качество: %d%%", quality);
         if (quality_label) {
@@ -201,7 +203,7 @@ gboolean update_video_display(gpointer data) {
         }
         
         // Детекция движения
-        if (detect_motion(*frame)) {
+        if (detect_motion(frame)) {
             if (motion_label) {
                 gtk_label_set_text(GTK_LABEL(motion_label), "Движение: ДА");
             }

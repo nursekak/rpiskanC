@@ -133,11 +133,11 @@ int capture_video_frame(uint16_t frequency) {
 /**
  * Получение текущего кадра (для GUI)
  */
-cv::Mat* get_current_frame(void) {
+void* get_current_frame(void) {
     pthread_mutex_lock(&frame_mutex);
     cv::Mat *frame = new cv::Mat(current_frame);
     pthread_mutex_unlock(&frame_mutex);
-    return frame;
+    return static_cast<void*>(frame);
 }
 
 /**
@@ -145,12 +145,13 @@ cv::Mat* get_current_frame(void) {
  * @param frame Кадр для анализа
  * @return Оценка качества (0-100)
  */
-int analyze_video_quality(const cv::Mat &frame) {
-    if (frame.empty()) return 0;
+int analyze_video_quality(void* frame_ptr) {
+    cv::Mat* frame = static_cast<cv::Mat*>(frame_ptr);
+    if (!frame || frame->empty()) return 0;
     
     // Конвертация в оттенки серого
     cv::Mat gray;
-    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(*frame, gray, cv::COLOR_BGR2GRAY);
     
     // Вычисление лапласиана для оценки резкости
     cv::Mat laplacian;
@@ -173,15 +174,15 @@ int analyze_video_quality(const cv::Mat &frame) {
  * @param frame Текущий кадр
  * @return 1 если движение обнаружено, 0 если нет
  */
-int detect_motion(const cv::Mat &frame) {
+int detect_motion(void* frame_ptr) {
+    cv::Mat* frame = static_cast<cv::Mat*>(frame_ptr);
+    if (!frame || frame->empty()) return 0;
     static cv::Mat prev_frame;
     static bool first_frame = true;
     
-    if (frame.empty()) return 0;
-    
     // Конвертация в оттенки серого
     cv::Mat gray;
-    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(*frame, gray, cv::COLOR_BGR2GRAY);
     
     if (first_frame) {
         prev_frame = gray.clone();
@@ -199,7 +200,7 @@ int detect_motion(const cv::Mat &frame) {
     
     // Подсчет пикселей движения
     int motion_pixels = cv::countNonZero(thresh);
-    int total_pixels = frame.rows * frame.cols;
+    int total_pixels = frame->rows * frame->cols;
     double motion_ratio = (double)motion_pixels / total_pixels;
     
     // Обновление предыдущего кадра
