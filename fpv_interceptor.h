@@ -93,10 +93,10 @@ int init_video_capture(void);
 int capture_video_frame(uint16_t frequency);
 void save_video_stream(uint16_t frequency);
 void get_video_info(void);
-void set_gui_callbacks(void (*update_callback)(void*), void (*status_callback)(const char*));
-void* get_current_frame(void);
-int analyze_video_quality(void* frame);
-int detect_motion(void* frame);
+void set_gui_callbacks(void (*update_callback)(cv::Mat*), void (*status_callback)(const char*));
+cv::Mat* get_current_frame(void);
+int analyze_video_quality(const cv::Mat &frame);
+int detect_motion(const cv::Mat &frame);
 void set_video_parameters(int width, int height, int fps);
 void video_detector_cleanup(void);
 

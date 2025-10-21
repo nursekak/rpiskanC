@@ -32,6 +32,10 @@ static cv::VideoCapture *video_capture = nullptr;
 static cv::Mat current_frame;
 static pthread_mutex_t frame_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// GUI виджеты
+static GtkWidget *quality_label = nullptr;
+static GtkWidget *motion_label = nullptr;
+
 /**
  * Конвертация OpenCV Mat в GdkPixbuf
  */
@@ -68,8 +72,12 @@ GdkPixbuf* convert_mat_to_pixbuf(const cv::Mat &mat) {
  */
 void gui_update_frame(cv::Mat* frame) {
     if (frame && !frame->empty()) {
-        // Обновление отображения видео
-        update_video_display();
+        // Обновление отображения видео напрямую
+        GdkPixbuf *pixbuf = convert_mat_to_pixbuf(*frame);
+        if (pixbuf) {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(video_widget), pixbuf);
+            g_object_unref(pixbuf);
+        }
     }
 }
 
@@ -178,7 +186,7 @@ gboolean update_video_display(gpointer data) {
     cv::Mat* frame = get_current_frame();
     if (frame && !frame->empty()) {
         // Конвертация в GdkPixbuf для отображения
-        GdkPixbuf *pixbuf = convert_mat_to_pixbuf(frame);
+        GdkPixbuf *pixbuf = convert_mat_to_pixbuf(*frame);
         if (pixbuf) {
             gtk_image_set_from_pixbuf(GTK_IMAGE(video_widget), pixbuf);
             g_object_unref(pixbuf);
@@ -188,13 +196,19 @@ gboolean update_video_display(gpointer data) {
         int quality = analyze_video_quality(*frame);
         char quality_text[64];
         snprintf(quality_text, sizeof(quality_text), "Качество: %d%%", quality);
-        gtk_label_set_text(GTK_LABEL(quality_label), quality_text);
+        if (quality_label) {
+            gtk_label_set_text(GTK_LABEL(quality_label), quality_text);
+        }
         
         // Детекция движения
         if (detect_motion(*frame)) {
-            gtk_label_set_text(GTK_LABEL(motion_label), "Движение: ДА");
+            if (motion_label) {
+                gtk_label_set_text(GTK_LABEL(motion_label), "Движение: ДА");
+            }
         } else {
-            gtk_label_set_text(GTK_LABEL(motion_label), "Движение: НЕТ");
+            if (motion_label) {
+                gtk_label_set_text(GTK_LABEL(motion_label), "Движение: НЕТ");
+            }
         }
         
         update_status("📹 Захват видео...");
@@ -427,6 +441,16 @@ GtkWidget* create_main_window(void) {
     gtk_widget_set_size_request(rssi_chart, 800, 150);
     gtk_container_add(GTK_CONTAINER(chart_frame), rssi_chart);
     g_signal_connect(rssi_chart, "draw", G_CALLBACK(draw_rssi_chart), NULL);
+    
+    // Информация о видео
+    hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_box_pack_start(GTK_BOX(control_vbox), hbox, FALSE, FALSE, 5);
+    
+    quality_label = gtk_label_new("Качество: --%");
+    gtk_box_pack_start(GTK_BOX(hbox), quality_label, FALSE, FALSE, 5);
+    
+    motion_label = gtk_label_new("Движение: НЕТ");
+    gtk_box_pack_start(GTK_BOX(hbox), motion_label, FALSE, FALSE, 5);
     
     // Статус
     status_label = gtk_label_new("🚀 FPV Interceptor готов к работе (с OpenCV)");
