@@ -70,8 +70,8 @@ uint8_t analyze_rssi(uint16_t frequency) {
     
     int channel = frequency - FREQ_MIN;
     
-    // Чтение текущего RSSI (используем Linux GPIO версию)
-    uint8_t current_rssi = rx5808_read_rssi_linux();
+    // Чтение текущего RSSI (заглушка)
+    uint8_t current_rssi = rx5808_read_rssi();
     
     // Сглаживание
     smooth_rssi(frequency, current_rssi);

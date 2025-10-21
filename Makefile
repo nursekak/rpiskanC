@@ -15,6 +15,7 @@ TARGET = fpv_interceptor_gui
 
 # Исходные файлы
 SOURCES = fpv_gui_simple.c \
+          rx5808_stub.c \
           rssi_analyzer.c \
           frequency_scanner.c
 

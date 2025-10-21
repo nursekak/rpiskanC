@@ -19,6 +19,7 @@
 #define RSSI_THRESHOLD 50    // Порог RSSI для детекции сигнала
 #define RSSI_SAMPLES 100     // Количество образцов RSSI для анализа
 #define RSSI_HISTORY_SIZE 50 // Размер истории RSSI
+#define CHANNELS_COUNT (FREQ_MAX - FREQ_MIN + 1) // Количество каналов
 
 // GPIO пины для RX5808
 #define CS_PIN 8      // Chip Select
@@ -41,11 +42,14 @@ typedef struct {
 } signal_info_t;
 
 typedef struct {
-    double mean;           // Среднее значение
-    double variance;       // Дисперсия
-    double min;            // Минимальное значение
-    double max;            // Максимальное значение
+    uint16_t frequency;    // Частота
+    uint8_t current_rssi;  // Текущий RSSI
+    uint8_t max_rssi;      // Максимальный RSSI
+    uint8_t min_rssi;      // Минимальный RSSI
+    uint8_t avg_rssi;      // Средний RSSI
     int samples;           // Количество образцов
+    uint8_t stability;     // Стабильность сигнала
+    uint32_t last_update;  // Время последнего обновления
 } rssi_stats_t;
 
 typedef struct {
@@ -61,7 +65,7 @@ typedef struct {
 extern detected_signal_t detected_signals[100];
 extern int detected_count;
 
-// Функции RX5808 драйвера
+// Функции RX5808 драйвера (заглушки для GUI)
 int rx5808_init(void);
 int rx5808_reset(void);
 void rx5808_write_register(uint8_t reg, uint8_t data);
@@ -75,9 +79,9 @@ void rx5808_cleanup(void);
 // Функции анализатора RSSI
 int rssi_analyzer_init(void);
 uint8_t analyze_rssi(uint16_t frequency);
-rssi_stats_t get_rssi_stats(uint16_t frequency);
+void get_rssi_stats(uint16_t frequency, rssi_stats_t *stats);
 int detect_signal_presence(uint16_t frequency);
-uint8_t analyze_amplitude_modulation(uint16_t frequency);
+uint8_t analyze_amplitude_modulation(int channel);
 void rssi_analyzer_cleanup(void);
 
 // Функции видеодетектора
