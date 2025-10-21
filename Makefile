@@ -12,6 +12,7 @@ GUI_LDFLAGS = $(LDFLAGS) `pkg-config --libs gtk+-3.0`
 
 # Имя исполняемого файла
 TARGET = fpv_interceptor_gui
+OPENCV_TARGET = fpv_interceptor_opencv
 
 # Исходные файлы
 SOURCES = fpv_gui_simple.c \
@@ -29,11 +30,20 @@ HEADERS = fpv_interceptor.h fpv_gui.h
 # По умолчанию
 all: $(TARGET)
 
+# OpenCV версия
+opencv: $(OPENCV_TARGET)
+
 # Сборка GUI версии
 $(TARGET): $(OBJECTS)
 	@echo "🔨 Сборка FPV Interceptor GUI..."
 	$(CC) $(OBJECTS) -o $(TARGET) $(GUI_LDFLAGS)
 	@echo "✅ GUI сборка завершена: $(TARGET)"
+
+# Сборка OpenCV версии
+$(OPENCV_TARGET): fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o
+	@echo "🔨 Сборка FPV Interceptor GUI с OpenCV..."
+	$(CC) fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(GUI_LDFLAGS)
+	@echo "✅ OpenCV GUI сборка завершена: $(OPENCV_TARGET)"
 
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)
@@ -43,7 +53,7 @@ $(TARGET): $(OBJECTS)
 # Очистка
 clean:
 	@echo "🧹 Очистка файлов сборки..."
-	rm -f $(OBJECTS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) $(OPENCV_TARGET) fpv_gui_opencv.o
 	@echo "✅ Очистка завершена"
 
 # Установка зависимостей
@@ -244,7 +254,8 @@ help:
 	@echo "FPV Interceptor GUI - Система перехвата FPV сигналов с GUI"
 	@echo ""
 	@echo "Доступные команды:"
-	@echo "  make              - Сборка GUI программы"
+	@echo "  make              - Сборка GUI программы (без OpenCV)"
+	@echo "  make opencv       - Сборка GUI программы с OpenCV"
 	@echo "  make clean         - Очистка файлов сборки"
 	@echo "  make install-deps - Установка зависимостей"
 	@echo "  make setup-system - Настройка системы"
