@@ -64,35 +64,36 @@ GdkPixbuf* convert_mat_to_pixbuf(const cv::Mat &mat) {
 }
 
 /**
+ * Callback для обновления GUI с новым кадром
+ */
+void gui_update_frame(cv::Mat* frame) {
+    if (frame && !frame->empty()) {
+        // Обновление отображения видео
+        update_video_display();
+    }
+}
+
+/**
+ * Callback для обновления статуса в GUI
+ */
+void gui_update_status(const char* message) {
+    update_status(message);
+}
+
+/**
  * Инициализация видеозахвата
  */
 int init_video_capture(void) {
     printf("📹 Инициализация видеозахвата с OpenCV...\n");
     
-    // Проверка доступности видеоустройства
-    if (access("/dev/video0", F_OK) != 0) {
-        printf("❌ USB Video DVR не найден: /dev/video0\n");
-        printf("ℹ️ Подключите USB Video DVR к Raspberry Pi\n");
-        printf("ℹ️ Подключите аналоговый выход RX5808 к входу USB Video DVR\n");
+    // Установка callback функций
+    set_gui_callbacks(gui_update_frame, gui_update_status);
+    
+    // Инициализация видеодетектора
+    if (init_video_capture() != 0) {
+        printf("❌ Ошибка инициализации видеодетектора\n");
         return -1;
     }
-    
-    // Создание объекта захвата видео
-    video_capture = new cv::VideoCapture();
-    
-    // Открытие видеоустройства
-    if (!video_capture->open("/dev/video0")) {
-        printf("❌ Ошибка открытия видеоустройства: /dev/video0\n");
-        delete video_capture;
-        video_capture = nullptr;
-        return -1;
-    }
-    
-    // Настройка параметров видео
-    video_capture->set(cv::CAP_PROP_FRAME_WIDTH, 640);
-    video_capture->set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    video_capture->set(cv::CAP_PROP_FPS, 30);
-    video_capture->set(cv::CAP_PROP_BUFFERSIZE, 1);
     
     printf("✅ Видеозахват инициализирован с OpenCV\n");
     return 0;
@@ -171,26 +172,33 @@ gboolean draw_rssi_chart(GtkWidget *widget, cairo_t *cr, gpointer data) {
  */
 gboolean update_video_display(gpointer data) {
     (void)data; // Подавление предупреждения
-    if (!video_capturing || !video_capture) return FALSE;
+    if (!video_capturing) return FALSE;
     
-    cv::Mat frame;
-    
-    // Захват кадра
-    if (video_capture->read(frame) && !frame.empty()) {
-        // Блокировка мьютекса для обновления кадра
-        pthread_mutex_lock(&frame_mutex);
-        current_frame = frame.clone();
-        pthread_mutex_unlock(&frame_mutex);
-        
-        // Конвертация OpenCV Mat в GdkPixbuf
+    // Получение текущего кадра от видеодетектора
+    cv::Mat* frame = get_current_frame();
+    if (frame && !frame->empty()) {
+        // Конвертация в GdkPixbuf для отображения
         GdkPixbuf *pixbuf = convert_mat_to_pixbuf(frame);
         if (pixbuf) {
-            // Обновление виджета видео
             gtk_image_set_from_pixbuf(GTK_IMAGE(video_widget), pixbuf);
             g_object_unref(pixbuf);
         }
         
+        // Анализ качества видео
+        int quality = analyze_video_quality(*frame);
+        char quality_text[64];
+        snprintf(quality_text, sizeof(quality_text), "Качество: %d%%", quality);
+        gtk_label_set_text(GTK_LABEL(quality_label), quality_text);
+        
+        // Детекция движения
+        if (detect_motion(*frame)) {
+            gtk_label_set_text(GTK_LABEL(motion_label), "Движение: ДА");
+        } else {
+            gtk_label_set_text(GTK_LABEL(motion_label), "Движение: НЕТ");
+        }
+        
         update_status("📹 Захват видео...");
+        delete frame; // Освобождение памяти
     } else {
         update_status("⚠️ Нет видеосигнала");
     }
@@ -222,8 +230,11 @@ gboolean scan_frequencies(gpointer data) {
                     "🎯 Сигнал обнаружен: %d МГц, RSSI: %d%%", current_freq, rssi);
             update_status(message);
             
+            // Захват видео на обнаруженной частоте
+            capture_video_frame(current_freq);
+            
             // Начало захвата видео
-            if (!video_capturing && video_capture) {
+            if (!video_capturing) {
                 video_capturing = TRUE;
                 video_timer_id = g_timeout_add(100, update_video_display, NULL);
             }
@@ -497,6 +508,11 @@ int main(int argc, char *argv[]) {
     
     // Запуск главного цикла GTK
     gtk_main();
+    
+    // Очистка ресурсов
+    cleanup_resources();
+    video_detector_cleanup();
+    rx5808_cleanup();
     
     return 0;
 }

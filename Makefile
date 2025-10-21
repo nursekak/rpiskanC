@@ -44,15 +44,19 @@ $(TARGET): $(OBJECTS)
 	@echo "✅ GUI сборка завершена: $(TARGET)"
 
 # Сборка OpenCV версии
-$(OPENCV_TARGET): fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o
+$(OPENCV_TARGET): fpv_gui_opencv.o rx5808_driver.o rssi_analyzer.o frequency_scanner_fixed.o video_detector.o utils.o
 	@echo "🔨 Сборка FPV Interceptor GUI с OpenCV..."
-	g++ fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scanner_fixed.o utils.o -o $(OPENCV_TARGET) $(OPENCV_LDFLAGS)
+	g++ fpv_gui_opencv.o rx5808_driver.o rssi_analyzer.o frequency_scanner_fixed.o video_detector.o utils.o -o $(OPENCV_TARGET) $(OPENCV_LDFLAGS)
 	@echo "✅ OpenCV GUI сборка завершена: $(OPENCV_TARGET)"
 
 # Компиляция OpenCV файлов
 fpv_gui_opencv.o: fpv_gui_opencv.cpp $(HEADERS)
 	@echo "📦 Компиляция OpenCV $<..."
 	g++ -Wall -Wextra -O2 -std=c++11 -D_GNU_SOURCE `pkg-config --cflags gtk+-3.0` `pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv` -c $< -o $@
+
+video_detector.o: video_detector.c $(HEADERS)
+	@echo "📦 Компиляция $<..."
+	g++ -Wall -Wextra -O2 -std=c++11 -D_GNU_SOURCE `pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv` -c $< -o $@
 
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)
@@ -62,7 +66,7 @@ fpv_gui_opencv.o: fpv_gui_opencv.cpp $(HEADERS)
 # Очистка
 clean:
 	@echo "🧹 Очистка файлов сборки..."
-	rm -f $(OBJECTS) $(TARGET) $(OPENCV_TARGET) fpv_gui_opencv.o
+	rm -f $(OBJECTS) $(TARGET) $(OPENCV_TARGET) fpv_gui_opencv.o video_detector.o rx5808_driver.o
 	@echo "✅ Очистка завершена"
 
 # Установка зависимостей
