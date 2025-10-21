@@ -19,13 +19,13 @@ static int video_height = 480;
 static int video_fps = 30;
 
 // Функции для GUI
-static void (*gui_update_callback)(cv::Mat*) = nullptr;
+static void (*gui_update_callback)(void*) = nullptr;
 static void (*gui_status_callback)(const char*) = nullptr;
 
 /**
  * Установка callback функций для GUI
  */
-void set_gui_callbacks(void (*update_callback)(cv::Mat*), void (*status_callback)(const char*)) {
+void set_gui_callbacks(void (*update_callback)(void*), void (*status_callback)(const char*)) {
     gui_update_callback = update_callback;
     gui_status_callback = status_callback;
 }
