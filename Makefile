@@ -50,9 +50,9 @@ $(OPENCV_TARGET): fpv_gui_opencv.o rx5808_stub.o rssi_analyzer.o frequency_scann
 	@echo "✅ OpenCV GUI сборка завершена: $(OPENCV_TARGET)"
 
 # Компиляция OpenCV файлов
-fpv_gui_opencv.o: fpv_gui_opencv.c $(HEADERS)
+fpv_gui_opencv.o: fpv_gui_opencv.cpp $(HEADERS)
 	@echo "📦 Компиляция OpenCV $<..."
-	$(CC) $(OPENCV_CFLAGS) -c $< -o $@
+	g++ -Wall -Wextra -O2 -std=c++11 -D_GNU_SOURCE `pkg-config --cflags gtk+-3.0` `pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv` -c $< -o $@
 
 # Компиляция объектных файлов
 %.o: %.c $(HEADERS)

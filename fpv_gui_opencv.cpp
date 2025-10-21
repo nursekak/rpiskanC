@@ -66,7 +66,7 @@ GdkPixbuf* convert_mat_to_pixbuf(const cv::Mat &mat) {
 /**
  * Инициализация видеозахвата
  */
-int init_video_capture(void) {
+extern "C" int init_video_capture(void) {
     printf("📹 Инициализация видеозахвата с OpenCV...\n");
     
     // Проверка доступности видеоустройства
@@ -101,7 +101,7 @@ int init_video_capture(void) {
 /**
  * Обновление статуса в GUI
  */
-void update_status(const char *message) {
+extern "C" void update_status(const char *message) {
     gtk_label_set_text(GTK_LABEL(status_label), message);
     gtk_widget_queue_draw(status_label);
 }
@@ -109,7 +109,7 @@ void update_status(const char *message) {
 /**
  * Обновление RSSI в GUI
  */
-void update_rssi_display(uint8_t rssi, uint16_t frequency) {
+extern "C" void update_rssi_display(uint8_t rssi, uint16_t frequency) {
     // Обновление прогресс-бара RSSI
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(rssi_progress), rssi / 100.0);
     
@@ -455,7 +455,7 @@ gboolean on_window_delete_event(GtkWidget *widget, GdkEvent *event, gpointer dat
 /**
  * Главная функция GUI
  */
-int main(int argc, char *argv[]) {
+extern "C" int main(int argc, char *argv[]) {
     GtkWidget *window;
     
     // Инициализация GTK
