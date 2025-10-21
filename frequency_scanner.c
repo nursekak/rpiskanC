@@ -295,8 +295,8 @@ int monitor_frequency(uint16_t frequency, uint32_t duration) {
     }
     printf("...\n");
     
-    // Установка частоты
-    if (rx5808_set_frequency(frequency) != 0) {
+    // Установка частоты (используем Linux GPIO версию)
+    if (rx5808_set_frequency_linux(frequency) != 0) {
         printf("❌ Ошибка установки частоты\n");
         return -1;
     }

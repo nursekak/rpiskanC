@@ -196,12 +196,14 @@ void test_hardware(void) {
     printf("🔧 Тестирование оборудования...\n");
     
     // Тест RX5808
-    printf("📡 Тест модуля RX5808...\n");
-    rx5808_get_info();
+    printf("📡 Тест модуля RX5808 (Linux GPIO версия)...\n");
+    printf("   Режим: Linux GPIO (без pigpio)\n");
+    printf("   SPI: /dev/spi0.0\n");
+    printf("   GPIO: /sys/class/gpio/\n");
     
     // Тест RSSI
     printf("📊 Тест анализатора RSSI...\n");
-    uint8_t rssi = rx5808_read_rssi();
+    uint8_t rssi = rx5808_read_rssi_linux();
     printf("   Текущий RSSI: %d%%\n", rssi);
     
     // Тест видео
