@@ -12,7 +12,7 @@ PIGPIO_LDFLAGS = $(LDFLAGS) -lpigpio
 
 # Linux GPIO флаги (альтернатива)
 LINUX_CFLAGS = $(CFLAGS)
-LINUX_LDFLAGS = $(LDFLAGS)
+LINUX_LDFLAGS = -lpthread -lm
 
 # GUI флаги
 GUI_CFLAGS = $(CFLAGS) `pkg-config --cflags gtk+-3.0`
@@ -41,7 +41,7 @@ GUI_SOURCES = fpv_gui.c \
 LINUX_SOURCES = main.c \
                 gpio_linux.c \
                 rssi_analyzer.c \
-                video_detector.c \
+                video_detector_simple.c \
                 frequency_scanner.c
 
 # Объектные файлы

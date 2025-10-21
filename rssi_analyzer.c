@@ -269,7 +269,6 @@ uint8_t analyze_amplitude_modulation(int channel) {
     
     if (count < 5) return 0;
     
-    uint8_t avg = sum / count;
     uint8_t modulation_depth = max_val - min_val;
     
     // FPV имеет характерную глубину модуляции
