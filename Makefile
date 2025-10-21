@@ -84,6 +84,11 @@ $(LINUX_TARGET): $(LINUX_OBJECTS)
 	@echo "📦 Компиляция $<..."
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# Специальное правило для video_detector_simple.c в Linux версии
+video_detector_simple.o: video_detector_simple.c $(HEADERS)
+	@echo "📦 Компиляция упрощенного видео $<..."
+	$(CC) $(LINUX_CFLAGS) -c $< -o $@
+
 # Компиляция GUI объектных файлов
 fpv_gui.o: fpv_gui.c fpv_gui.h $(HEADERS)
 	@echo "📦 Компиляция GUI $<..."
