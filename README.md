@@ -1,277 +1,72 @@
-# FPV Interceptor GUI - Перехват FPV видеосигналов 5.8 ГГц
+# rpiskanC
 
-## 🎯 Описание
+Raspberry Pi 4 path for **5.8 GHz analog video**: SPI control of an RX5808 receiver, RSSI scan across the band, GTK UI, optional OpenCV preview from a USB capture dongle.
 
-FPV Interceptor GUI - это система перехвата FPV видеосигналов в диапазоне 5.8 ГГц с графическим интерфейсом для Raspberry Pi 4. Программа автоматически сканирует частоты, анализирует RSSI сигналы и захватывает видео с USB Video DVR.
+C on the radio path. Python is not in the scan loop.
 
-## ✨ Особенности
+## What it actually does
 
-- **🎨 Графический интерфейс** - удобный GUI на GTK+3
-- **📹 Видеозахват** - реальное видео с USB Video DVR через OpenCV
-- **📊 Анализ RSSI** - график в реальном времени
-- **🔍 Автосканирование** - автоматический поиск FPV сигналов
-- **💾 Сохранение** - автоматическое сохранение видео и данных
-- **🎛️ Управление** - полный контроль через GUI
+Tune the RX5808 over SPI (CS / MOSI / MISO / SCK), read RSSI on GPIO 7, sweep **5725–6000 MHz** in 1 MHz steps (`FREQ_MIN` / `FREQ_MAX` / `FREQ_STEP` in `fpv_interceptor.h`). Threshold for “something is there” is `RSSI_THRESHOLD` (50 in that header) — not a calibrated dBm meter.
 
-## 🔧 Системные требования
+The GTK build (`make`) is the UI + scanner, with an RX5808 stub so you can compile off-Pi. The OpenCV build (`make opencv`) talks to a real driver and grabs frames from `/dev/video0` (640×480, 30 FPS in `video_detector.c`) after the analog out of the RX5808 goes into a USB video dongle.
 
-- Raspberry Pi 4 Model B
-- RX5808 5.8GHz Receiver Module
-- USB Video DVR (для видеозахвата)
-- Linux с поддержкой SPI и GPIO
-- OpenCV для видеозахвата
-- GTK+3 для GUI
+Binary names from the Makefile are still `fpv_interceptor_gui` / `fpv_interceptor_opencv`. I did not rename the tree.
 
-## 📦 Установка
+## Hardware
 
-### 1. Быстрая установка
+- Raspberry Pi 4, SPI on
+- RX5808 5.8 GHz module
+- USB analog-to-digital video dongle (only for the OpenCV target)
+
+RX5808 → Pi:
+
+| RX5808 | Pi |
+|--------|----|
+| VCC | 3.3 V (pin 1) |
+| GND | GND (pin 6) |
+| CS | GPIO 8 (pin 24) |
+| MOSI | GPIO 10 (pin 19) |
+| MISO | GPIO 9 (pin 21) |
+| SCK | GPIO 11 (pin 23) |
+| RSSI | GPIO 7 (pin 26) |
+| VIDEO | USB dongle analog in |
+
+More pin notes: `RPI_WIRING.md`, `QUICK_WIRING.md`.
+
+## Build (on the Pi)
 
 ```bash
-# Клонирование проекта
-git clone <repository-url>
+git clone https://github.com/nursekak/rpiskanC.git
 cd rpiskanC
-
-# Полная установка
-make install
-
-# Перезагрузка
-sudo reboot
-```
-
-### 2. Ручная установка
-
-```bash
-# Установка зависимостей
 make install-deps
-
-# Настройка системы
-make setup-system
-
-# Создание директорий
-make create-dirs
-
-# Настройка прав
-make set-permissions
-
-# Перезагрузка
+make setup-system   # enables SPI in config.txt, starts pigpiod; reboot after
 sudo reboot
 ```
 
-## 🚀 Запуск
-
-### Графический интерфейс
+After reboot:
 
 ```bash
-# Сборка GUI версии
-make
-
-# Запуск
-./fpv_interceptor_gui
+cd rpiskanC
+make                # GTK UI → ./fpv_interceptor_gui
+# or
+make opencv         # GTK + OpenCV → ./fpv_interceptor_opencv
+make test-hardware  # /dev/spi*, pigpiod, /dev/video*, lsusb
 ```
 
-### Скрипт запуска
+`make install-deps` pulls gcc, GTK3, OpenCV, v4l, and builds [pigpio](https://github.com/joan2937/pigpio) from source if needed.
 
-```bash
-# Создание скрипта
-make create-launcher
+## Layout
 
-# Запуск через скрипт
-./fpv_gui.sh
-```
+| File | Role |
+|------|------|
+| `fpv_gui_simple.c` | GTK UI used by the default target |
+| `fpv_gui_opencv.cpp` | GTK + OpenCV UI |
+| `rx5808_driver.c` / `rx5808_stub.c` | SPI tuner vs compile-without-radio stub |
+| `rssi_analyzer.c` | RSSI samples / history |
+| `frequency_scanner_fixed.c` | sweep |
+| `video_detector.c` | OpenCV capture from `/dev/video0` |
+| `Makefile` | `all`, `opencv`, `install-deps`, `setup-system`, `test-hardware` |
 
-## 🔌 Подключение оборудования
+## Limits
 
-### RX5808 к Raspberry Pi
-
-```
-RX5808    →    Raspberry Pi
-VCC       →    3.3V (Pin 1)
-GND       →    GND (Pin 6)
-CS        →    GPIO 8 (Pin 24)
-MOSI      →    GPIO 10 (Pin 19)
-MISO      →    GPIO 9 (Pin 21)
-SCK       →    GPIO 11 (Pin 23)
-RSSI      →    GPIO 7 (Pin 26)
-VIDEO     →    USB Video DVR Input
-```
-
-### USB Video DVR
-
-```
-USB Video DVR Input  →  RX5808 VIDEO Pin (аналоговый)
-USB Video DVR Output →  Raspberry Pi USB (цифровой)
-```
-
-## 🎨 Интерфейс
-
-### Главное окно
-
-- **📹 Видео область** - отображение захваченного видео
-- **🎛️ Панель управления** - кнопки управления
-- **📊 График RSSI** - график в реальном времени
-- **📈 Индикаторы** - RSSI, частота, статус
-
-### Функции
-
-1. **🔍 Сканирование** - автоматический поиск сигналов
-2. **👁️ Мониторинг** - наблюдение за конкретной частотой
-3. **⏹️ Остановка** - остановка всех операций
-4. **💾 Сохранение** - автоматическое сохранение данных
-
-## 📊 Использование
-
-### Основные операции
-
-1. **Запуск программы** - `./fpv_interceptor_gui`
-2. **Начало сканирования** - кнопка "🔍 Начать сканирование"
-3. **Мониторинг частоты** - ввод частоты и кнопка "👁️ Мониторинг"
-4. **Остановка** - кнопка "⏹️ Остановить"
-
-### Автоматические функции
-
-- **Детекция сигналов** - автоматическое обнаружение FPV сигналов
-- **Захват видео** - автоматический захват при обнаружении
-- **Сохранение данных** - автоматическое сохранение в файлы
-
-## 📁 Структура файлов
-
-```
-rpiskanC/
-├── fpv_interceptor_gui     # Исполняемый файл
-├── fpv_gui.c              # GUI интерфейс
-├── rssi_analyzer.c        # RSSI анализатор
-├── video_detector_gui.c   # Видеодетектор с OpenCV
-├── frequency_scanner.c    # Частотный сканер
-├── fpv_interceptor.h      # Заголовочный файл
-├── fpv_gui.h             # GUI заголовки
-├── Makefile              # Система сборки
-├── install_opencv.sh     # Скрипт установки OpenCV
-└── fpv_gui.sh           # Скрипт запуска
-```
-
-## 🐛 Отладка
-
-### Проверка оборудования
-
-```bash
-# Проверка всех компонентов
-make test-hardware
-
-# Проверка SPI
-ls -la /dev/spi*
-
-# Проверка видео
-ls -la /dev/video*
-
-# Проверка USB Video DVR
-lsusb | grep -i video
-```
-
-### Логи
-
-```bash
-# Просмотр системных логов
-journalctl -u fpv-interceptor -f
-
-# Проверка pigpio
-sudo systemctl status pigpiod
-```
-
-## ⚙️ Настройка
-
-### Конфигурация частот
-
-```bash
-# Редактирование в fpv_interceptor.h
-#define FREQ_MIN 5725  // Минимальная частота
-#define FREQ_MAX 6000  // Максимальная частота
-#define FREQ_STEP 1     // Шаг сканирования
-```
-
-### Настройка видео
-
-```bash
-# Параметры видео в video_detector_gui.c
-set_video_parameters(640, 480, 30);  // Ширина, высота, FPS
-```
-
-## 📈 Производительность
-
-### Характеристики
-
-- **Частота сканирования**: 1-10 МГц/сек
-- **RSSI точность**: ±2%
-- **Время отклика**: <100 мс
-- **Видео**: 640x480 @ 30 FPS
-- **Потребление памяти**: <100 МБ
-
-### Оптимизация
-
-```bash
-# Увеличение приоритета
-sudo nice -n -10 ./fpv_interceptor_gui
-
-# Ограничение CPU для других процессов
-sudo cpulimit -p $(pgrep -f "other_process") -l 50
-```
-
-## 🚨 Устранение неполадок
-
-### Ошибка "Permission denied"
-
-```bash
-# Добавление в группы
-sudo usermod -a -G gpio,spi,video $(USER)
-sudo reboot
-```
-
-### Ошибка "SPI not found"
-
-```bash
-# Включение SPI
-echo "dtparam=spi=on" | sudo tee -a /boot/firmware/config.txt
-sudo reboot
-```
-
-### Ошибка "OpenCV not found"
-
-```bash
-# Установка OpenCV
-./install_opencv.sh
-```
-
-### Ошибка "USB Video DVR not found"
-
-```bash
-# Проверка подключения
-lsusb | grep -i video
-ls -la /dev/video*
-```
-
-## 📞 Поддержка
-
-### Полезные команды
-
-```bash
-# Проверка системы
-make test-hardware
-
-# Очистка сборки
-make clean
-
-# Пересборка
-make
-
-# Справка
-make help
-```
-
-### Контакты
-
-- **Документация**: README.md
-- **Быстрый старт**: QUICK_START.md
-- **Схема подключения**: RPI_WIRING.md
-
----
-
-**FPV Interceptor GUI** - профессиональное решение для перехвата FPV сигналов с удобным графическим интерфейсом! 🚁📡🎨
+This is a receiver + RSSI plot + preview on a Pi. No radio TX, no flight controller, no network stack. RSSI is the module’s analog pin scaled to 0–100, not a lab instrument. I did not put made-up sweep-rate or “±2% accuracy” numbers in here — they are not measured in-repo.
