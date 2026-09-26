@@ -1,162 +1,53 @@
-# FPV Interceptor - Инструкция по использованию
+# Usage
 
-## 🎯 Доступные версии
+Two Makefile targets. Binary names are unchanged.
 
-### 1. Базовая версия (без OpenCV)
+## GTK only (no camera)
+
 ```bash
 make
 ./fpv_interceptor_gui
 ```
-- ✅ RSSI анализ
-- ✅ График в реальном времени
-- ✅ Сканирование частот
-- ❌ Видеозахват
 
-### 2. Полная версия (с OpenCV)
-```bash
-# Установка OpenCV
-./install_opencv.sh
+RSSI scan and the live plot. No `/dev/video0`.
 
-# Сборка с OpenCV
-make opencv
-./fpv_interceptor_opencv
-```
-- ✅ RSSI анализ
-- ✅ График в реальном времени
-- ✅ Сканирование частот
-- ✅ Видеозахват с USB Video DVR
+## GTK + OpenCV preview
 
-## 🔧 Установка OpenCV
-
-### Автоматическая установка
 ```bash
 chmod +x install_opencv.sh
-./install_opencv.sh
-```
-
-### Ручная установка
-```bash
-sudo apt update
-sudo apt install -y libopencv-dev python3-opencv
-```
-
-## 📹 Настройка видеозахвата
-
-### 1. Подключение оборудования
-```
-RX5808 VIDEO → USB Video DVR Input (аналоговый)
-USB Video DVR → Raspberry Pi USB (цифровой)
-```
-
-### 2. Проверка подключения
-```bash
-# Проверка USB Video DVR
-lsusb | grep -i video
-
-# Проверка видеоустройства
-ls -la /dev/video*
-```
-
-### 3. Запуск с видеозахватом
-```bash
+./install_opencv.sh   # or: sudo apt install -y libopencv-dev python3-opencv
 make opencv
 ./fpv_interceptor_opencv
 ```
 
-## 🎛️ Использование GUI
+Needs the analog VIDEO pin on the RX5808 into a USB capture dongle, then that dongle on the Pi.
 
-### Основные функции
-1. **🔍 Сканирование** - автоматический поиск FPV сигналов
-2. **👁️ Мониторинг** - наблюдение за конкретной частотой
-3. **📊 График RSSI** - визуализация в реальном времени
-4. **📹 Видеозахват** - захват видео при обнаружении сигнала
+```
+RX5808 VIDEO  →  USB capture analog in
+USB capture   →  Pi USB  →  /dev/video0
+```
 
-### Интерфейс
-- **Верхняя область**: Видео с USB Video DVR
-- **Панель управления**: Кнопки и настройки
-- **График RSSI**: Визуализация сигнала
-- **Статус**: Информация о работе
+Check:
 
-## 🔍 Проверка перехвата видео
-
-### Индикаторы успешного перехвата
-1. **В GUI**: Видео отображается в верхней области
-2. **В консоли**: Сообщения "📹 Захват видео..."
-3. **Файлы**: Автоматическое сохранение в `captures/`
-
-### Устранение проблем
 ```bash
-# Проверка OpenCV
-pkg-config --modversion opencv
-
-# Проверка видеоустройства
-ls -la /dev/video*
-
-# Проверка USB Video DVR
 lsusb | grep -i video
-
-# Пересборка
-make clean && make opencv
+ls -la /dev/video*
 ```
 
-## 📊 Анализ результатов
+Saves under `captures/` (`video_*.avi` from `video_detector.c`). Signal dumps and `logs/` if the UI writes them.
 
-### Файлы данных
-- `captures/video_*.avi` - Захваченное видео
-- `signals_*.txt` - Данные о сигналах
-- `logs/` - Системные логи
+## GUI
 
-### Параметры сигнала
-- **Частота**: 5725-6000 МГц
-- **RSSI**: 0-100%
-- **Качество**: Автоматическая оценка
-- **Движение**: Детекция движения
+Scan sweeps 5725–6000 MHz. Monitor locks one frequency. RSSI bar is 0–100 from the module pin, not dBm. Preview is the OpenCV target only.
 
-## 🚀 Быстрый старт
+## If it does not start
 
-### Без видеозахвата
 ```bash
-make
-./fpv_interceptor_gui
-```
-
-### С видеозахватом
-```bash
-./install_opencv.sh
-make opencv
-./fpv_interceptor_opencv
-```
-
-## ⚠️ Важные замечания
-
-1. **USB Video DVR обязателен** для видеозахвата
-2. **Аналоговый сигнал** от RX5808 должен идти в USB Video DVR
-3. **Цифровой сигнал** от USB Video DVR идет в Raspberry Pi
-4. **OpenCV необходим** только для полного видеозахвата
-
-## 🆘 Поддержка
-
-### Полезные команды
-```bash
-# Проверка системы
+pkg-config --modversion opencv4 || pkg-config --modversion opencv
+ls -la /dev/video*
 make test-hardware
-
-# Очистка
-make clean
-
-# Справка
-make help
-```
-
-### Логи
-```bash
-# Системные логи
-journalctl -u fpv-interceptor -f
-
-# Проверка pigpio
+make clean && make opencv
 sudo systemctl status pigpiod
 ```
 
----
-
-**FPV Interceptor** - профессиональный перехват FPV сигналов с видеозахватом! 🚁📡📹
+`journalctl -u fpv-interceptor` only exists if you installed that unit (`make install-service`). Default run is just the binary.

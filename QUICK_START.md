@@ -1,117 +1,67 @@
-# 🚀 Быстрый старт FPV Interceptor
+# Quick start
 
-## ⚡ Быстрая установка
+On a Raspberry Pi 4:
 
 ```bash
-# 1. Клонирование проекта
-git clone <repository-url>
-cd fpv-interceptor
-
-# 2. Установка зависимостей
+git clone https://github.com/nursekak/rpiskanC.git
+cd rpiskanC
 make install-deps
-
-# 3. Настройка системы
 make setup-system
 sudo reboot
-
-# 4. Сборка программы
-make
-
-# 5. Проверка оборудования
-make test-hardware
-
-# 6. Запуск
-./fpv_interceptor.sh
 ```
 
-## 🔧 Настройка pigpio
+After reboot:
 
 ```bash
-# Запуск pigpio демона
+cd rpiskanC
+make
+make test-hardware
+./fpv_interceptor_gui
+```
+
+OpenCV preview: `make opencv` then `./fpv_interceptor_opencv`.
+
+## pigpio
+
+```bash
 sudo systemctl enable pigpiod
 sudo systemctl start pigpiod
-
-# Проверка статуса
 sudo systemctl status pigpiod
 ```
 
-## 🔌 Быстрое подключение
+## Wiring (short)
 
-### RX5808 → Raspberry Pi 4:
-```
-GND    → Pin 6 (GND)
-+5V    → Pin 2 (5V)
-RSSI   → Pin 26 (GPIO 7)
-VIDEO  → USB Video DVR
-A6.5M  → Pin 19 (GPIO 10)
-CH1    → Pin 23 (GPIO 11)
-CH2    → Pin 24 (GPIO 8)
-ANT    → Антенна 5.8 ГГц
-```
+| RX5808 | Pi 4 |
+|--------|------|
+| GND | pin 6 |
+| +5V or 3.3V | pin 2 (5V) or pin 1 (3.3V) — module accepts both; 5V is what the other wiring notes use |
+| RSSI | pin 26 (GPIO 7) |
+| VIDEO | USB capture analog in |
+| MOSI (A / 6.5M side, see `RPI_WIRING.md`) | pin 19 (GPIO 10) |
+| SCK (CH1) | pin 23 (GPIO 11) |
+| CS (CH2) | pin 24 (GPIO 8) |
+| ANT | 5.8 GHz antenna |
 
-## 🎯 Основные команды
+Full pinout: `QUICK_WIRING.md`, `RPI_WIRING.md`.
 
-### Сканирование:
-- **Полное сканирование**: Опция 1
-- **Непрерывное сканирование**: Опция 2
-- **Мониторинг частоты**: Опция 4
+## What the binary does
 
-### Тестирование:
+Sweeps 5725–6000 MHz, 1 MHz step. Treats RSSI above 50 (header `RSSI_THRESHOLD`) as “occupied”. OpenCV target can grab `/dev/video0` when the analog path is plugged in.
+
+Python helpers, if you want them: `examples/test_hardware.py`, `examples/simple_scanner.py`.
+
+## Stuck
+
 ```bash
-# Тест оборудования
-python3 examples/test_hardware.py
-
-# Простой сканер
-python3 examples/simple_scanner.py
-```
-
-## 📊 Что делает программа
-
-1. **Сканирует** диапазон 5725-6000 МГц
-2. **Анализирует** RSSI сигналы
-3. **Обнаруживает** FPV видеосигналы
-4. **Захватывает** видеопотоки
-5. **Сохраняет** данные
-
-## 🔧 Устранение проблем
-
-### pigpio не работает:
-```bash
-# Запуск демона
+# pigpio
 sudo systemctl start pigpiod
-
-# Проверка статуса
-sudo systemctl status pigpiod
-
-# Проверка подключения
 python3 -c "import pigpio; pi = pigpio.pi(); print('OK' if pi.connected else 'ERROR'); pi.stop()"
-```
 
-### SPI не работает:
-```bash
+# SPI
 echo "dtparam=spi=on" | sudo tee -a /boot/firmware/config.txt
 sudo reboot
-```
 
-### Видео не захватывается:
-```bash
+# video
 ls /dev/video*
 lsusb
 ```
-
-### Слабый сигнал:
-- Проверьте антенну
-- Проверьте заземление
-- Попробуйте другую позицию
-
-## 📈 Результаты
-
-Программа автоматически:
-- Обнаруживает сигналы с RSSI > 50%
-- Анализирует характеристики FPV
-- Захватывает видеопотоки
-- Сохраняет данные в файлы
-
----
-
-**🎯 Готово! Начинайте перехват FPV сигналов!**
